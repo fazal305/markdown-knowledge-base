@@ -6,7 +6,7 @@ This project works like a small personal wiki where you can create notes, edit m
 
 ## Live Demo
 
-Coming soon after GitHub Pages deployment.
+https://fazal305.github.io/markdown-knowledge-base/
 
 ## Features
 
