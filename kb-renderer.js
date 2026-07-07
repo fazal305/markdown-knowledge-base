@@ -1,111 +1,85 @@
-/* Convert text into safe plain HTML text */
+function createElement(tagName, className, textContent) {
+  const element = document.createElement(tagName);
 
-function escapeHtml(text) {
+  if (className) {
+    element.className = className;
+  }
 
-    return String(text)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#039;');
+  if (textContent !== undefined) {
+    element.textContent = textContent;
+  }
 
+  return element;
 }
-
-/* Convert markdown text into safe HTML */
 
 function renderMarkdown(rawText) {
+  if (!window.marked || !window.DOMPurify) {
+    return `<pre>${escapeHtml(rawText)}</pre>`;
+  }
 
-    const dirtyHtml = marked.parse(rawText);
-
-    const cleanHtml = DOMPurify.sanitize(dirtyHtml);
-
-    return cleanHtml;
-
+  const dirtyHtml = marked.parse(rawText);
+  return DOMPurify.sanitize(dirtyHtml);
 }
 
-/* Build markdown toolbar buttons */
+function escapeHtml(text) {
+  return String(text)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
 
 function renderToolbar() {
+  const toolbar = createElement("div", "toolbar");
+  const tools = [
+    { label: "Bold", before: "**", after: "**" },
+    { label: "Italic", before: "*", after: "*" },
+    { label: "Heading", before: "## ", after: "" },
+    { label: "Code", before: "`", after: "`" },
+    { label: "Link", before: "[", after: "](https://example.com)" }
+  ];
 
-    return `
-        <div class="toolbar btn-group mb-3" role="group">
+  tools.forEach(function (tool) {
+    const button = createElement("button", "toolbar-btn", tool.label);
+    button.type = "button";
+    button.dataset.before = tool.before;
+    button.dataset.after = tool.after;
+    toolbar.appendChild(button);
+  });
 
-            <button class="btn btn-outline-info btn-sm toolbar-btn" data-before="**" data-after="**">
-                Bold
-            </button>
-
-            <button class="btn btn-outline-info btn-sm toolbar-btn" data-before="*" data-after="*">
-                Italic
-            </button>
-
-            <button class="btn btn-outline-info btn-sm toolbar-btn" data-before="## " data-after="">
-                Heading
-            </button>
-
-            <button class="btn btn-outline-info btn-sm toolbar-btn" data-before="\`" data-after="\`">
-                Code
-            </button>
-
-            <button class="btn btn-outline-info btn-sm toolbar-btn" data-before="[" data-after="](https://example.com)">
-                Link
-            </button>
-
-        </div>
-    `;
-
+  return toolbar;
 }
-
-/* Wrap selected text */
 
 function wrapSelection(textarea, before, after) {
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selectedText = textarea.value.substring(start, end);
+  const replacementText = before + selectedText + after;
 
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
+  textarea.value =
+    textarea.value.substring(0, start) +
+    replacementText +
+    textarea.value.substring(end);
 
-    const selectedText = textarea.value.substring(start, end);
-
-    const replacementText = before + selectedText + after;
-
-    textarea.value =
-        textarea.value.substring(0, start) +
-        replacementText +
-        textarea.value.substring(end);
-
-    textarea.focus();
-
-    textarea.selectionStart = start + before.length;
-    textarea.selectionEnd = start + before.length + selectedText.length;
-
+  textarea.focus();
+  textarea.selectionStart = start + before.length;
+  textarea.selectionEnd = start + before.length + selectedText.length;
 }
-
-/* Count words */
 
 function getWordCount(text) {
-
-    const cleanText = text.trim();
-
-    if (!cleanText) {
-        return 0;
-    }
-
-    return cleanText.split(/\s+/).length;
-
+  const cleanText = text.trim();
+  return cleanText ? cleanText.split(/\s+/).length : 0;
 }
-
-/* Count characters */
 
 function getCharCount(text) {
-
-    return text.length;
-
+  return text.length;
 }
 
-/* Render live preview */
-
 function updateLivePreview(text) {
+  const livePreview = document.getElementById("live-preview");
 
-    const html = renderMarkdown(text);
-
-    $('#live-preview').html(html);
-
+  if (livePreview) {
+    livePreview.innerHTML = renderMarkdown(text);
+  }
 }

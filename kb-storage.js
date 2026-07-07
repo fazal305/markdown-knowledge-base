@@ -1,28 +1,20 @@
-const STORAGE_KEY = 'markdownKnowledgeBaseNotes';
-
-/* Generate a unique note id */
+const STORAGE_KEY = "markdownKnowledgeBaseNotes";
 
 function generateId() {
-
-    return Date.now().toString() + '-' + Math.random().toString(36).substring(2, 8);
-
+  return `${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
 }
 
-/* Create starter notes on first run */
-
 function createStarterNotes() {
+  if (localStorage.getItem(STORAGE_KEY)) {
+    return;
+  }
 
-    const existingNotes = localStorage.getItem(STORAGE_KEY);
-
-    if (existingNotes) {
-        return;
-    }
-
-    const starterNotes = [
-        {
-            id: generateId(),
-            title: 'Welcome to Your Knowledge Base',
-            content: `# Welcome to Your Knowledge Base
+  const now = Date.now();
+  const starterNotes = [
+    {
+      id: generateId(),
+      title: "Welcome to Your Knowledge Base",
+      content: `# Welcome to Your Knowledge Base
 
 This is your personal markdown-powered wiki.
 
@@ -53,42 +45,34 @@ This is your personal markdown-powered wiki.
 
 \`\`\`javascript
 function sayHello() {
-    console.log('Hello Knowledge Base');
+  console.log("Hello Knowledge Base");
 }
 \`\`\`
 `,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-        },
-        {
-            id: generateId(),
-            title: 'JavaScript Cheatsheet',
-            content: `# JavaScript Cheatsheet
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: generateId(),
+      title: "JavaScript Cheatsheet",
+      content: `# JavaScript Cheatsheet
 
 A quick reference for common JavaScript concepts.
 
 ## Variables
 
 \`\`\`javascript
-let username = 'Fazal';
-const appName = 'Knowledge Base';
-\`\`\`
-
-## Functions
-
-\`\`\`javascript
-function greetUser(name) {
-    return 'Hello ' + name;
-}
+let username = "Fazal";
+const appName = "Knowledge Base";
 \`\`\`
 
 ## Arrays
 
 \`\`\`javascript
-const skills = ['HTML', 'CSS', 'JavaScript'];
+const skills = ["HTML", "CSS", "JavaScript"];
 
 skills.forEach(function (skill) {
-    console.log(skill);
+  console.log(skill);
 });
 \`\`\`
 
@@ -96,53 +80,18 @@ skills.forEach(function (skill) {
 
 \`\`\`javascript
 const note = {
-    title: 'My Note',
-    content: 'Markdown text here'
+  title: "My Note",
+  content: "Markdown text here"
 };
 \`\`\`
-
-## Fetch
-
-\`\`\`javascript
-fetch('https://api.example.com/data')
-    .then(function (response) {
-        return response.json();
-    })
-    .then(function (data) {
-        console.log(data);
-    });
-\`\`\`
-
-## Async / Await
-
-\`\`\`javascript
-async function getData() {
-    const response = await fetch('https://api.example.com/data');
-    const data = await response.json();
-
-    console.log(data);
-}
-\`\`\`
-
-## Quick Table
-
-| Concept | Meaning |
-| --- | --- |
-| let | Changeable variable |
-| const | Fixed variable |
-| array | List of values |
-| object | Grouped data |
-| function | Reusable block of code |
 `,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-        },
-        {
-            id: generateId(),
-            title: 'My Learning Roadmap',
-            content: `# My Learning Roadmap
-
-A simple checklist for frontend progress.
+      createdAt: now,
+      updatedAt: now
+    },
+    {
+      id: generateId(),
+      title: "My Learning Roadmap",
+      content: `# My Learning Roadmap
 
 ## Completed
 
@@ -150,9 +99,6 @@ A simple checklist for frontend progress.
 - [x] CSS layouts
 - [x] JavaScript DOM
 - [x] localStorage projects
-- [x] Canvas animations
-- [x] Web Audio API basics
-- [x] Firebase Firestore apps
 
 ## In Progress
 
@@ -168,104 +114,73 @@ A simple checklist for frontend progress.
 - [ ] Authentication
 - [ ] Full-stack deployment
 `,
-            createdAt: Date.now(),
-            updatedAt: Date.now()
-        }
-    ];
+      createdAt: now,
+      updatedAt: now
+    }
+  ];
 
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(starterNotes));
-
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(starterNotes));
 }
-
-/* Get all notes */
 
 function getAllNotes() {
+  const notes = localStorage.getItem(STORAGE_KEY);
 
-    const notes = localStorage.getItem(STORAGE_KEY);
+  if (!notes) {
+    return [];
+  }
 
-    if (!notes) {
-        return [];
-    }
-
-    return JSON.parse(notes);
-
+  try {
+    const parsedNotes = JSON.parse(notes);
+    return Array.isArray(parsedNotes) ? parsedNotes : [];
+  } catch (error) {
+    return [];
+  }
 }
-
-/* Find one note by id */
 
 function getNoteById(id) {
-
-    const notes = getAllNotes();
-
-    return notes.find(function (note) {
-        return note.id === id;
-    });
-
+  return getAllNotes().find(function (note) {
+    return note.id === id;
+  });
 }
-
-/* Save or update a note */
 
 function saveNote(note) {
+  const notes = getAllNotes();
+  const existingIndex = notes.findIndex(function (savedNote) {
+    return savedNote.id === note.id;
+  });
 
-    const notes = getAllNotes();
+  note.updatedAt = Date.now();
 
-    const existingIndex = notes.findIndex(function (savedNote) {
-        return savedNote.id === note.id;
-    });
+  if (existingIndex === -1) {
+    note.createdAt = Date.now();
+    notes.push(note);
+  } else {
+    notes[existingIndex] = note;
+  }
 
-    note.updatedAt = Date.now();
-
-    if (existingIndex === -1) {
-
-        note.createdAt = Date.now();
-
-        notes.push(note);
-
-    } else {
-
-        notes[existingIndex] = note;
-
-    }
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
-
-    return note;
-
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(notes));
+  return note;
 }
-
-/* Delete one note */
 
 function deleteNote(id) {
+  const filteredNotes = getAllNotes().filter(function (note) {
+    return note.id !== id;
+  });
 
-    const notes = getAllNotes();
-
-    const filteredNotes = notes.filter(function (note) {
-        return note.id !== id;
-    });
-
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredNotes));
-
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(filteredNotes));
 }
 
-/* Search notes by title or content */
-
 function searchNotes(query) {
+  const cleanQuery = query.toLowerCase().trim();
 
-    const notes = getAllNotes();
+  if (!cleanQuery) {
+    return getAllNotes();
+  }
 
-    const cleanQuery = query.toLowerCase().trim();
-
-    if (!cleanQuery) {
-        return notes;
-    }
-
-    return notes.filter(function (note) {
-
-        const titleMatch = note.title.toLowerCase().includes(cleanQuery);
-        const contentMatch = note.content.toLowerCase().includes(cleanQuery);
-
-        return titleMatch || contentMatch;
-
-    });
-
+  return getAllNotes().filter(function (note) {
+    return (
+      note.title.toLowerCase().includes(cleanQuery) ||
+      note.content.toLowerCase().includes(cleanQuery)
+    );
+  });
 }

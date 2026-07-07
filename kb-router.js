@@ -1,70 +1,52 @@
 const ROUTES = {
-    home: null,
-    note: null,
-    edit: null
+  home: null,
+  note: null,
+  edit: null
 };
 
-/* Navigate to a hash */
-
 function navigateTo(hash) {
-
-    window.location.hash = hash;
-
+  window.location.hash = hash;
 }
-
-/* Parse current hash */
 
 function parseHash() {
+  const currentHash = window.location.hash.replace("#", "");
 
-    let currentHash = window.location.hash.replace('#', '');
-
-    if (!currentHash) {
-
-        return {
-            route: 'home',
-            param: null
-        };
-
-    }
-
-    const parts = currentHash.split('/');
-
+  if (!currentHash) {
     return {
-        route: parts[0],
-        param: parts[1] || null
+      route: "home",
+      param: null
     };
+  }
 
+  const parts = currentHash.split("/");
+
+  return {
+    route: parts[0],
+    param: parts[1] || null
+  };
 }
-
-/* Handle route changes */
 
 function handleRoute() {
+  const routeData = parseHash();
+  const routeHandler = ROUTES[routeData.route];
 
-    const routeData = parseHash();
+  if (typeof routeHandler === "function") {
+    routeHandler(routeData.param);
+    return;
+  }
 
-    const routeHandler = ROUTES[routeData.route];
+  const appContent = document.getElementById("app-content");
+  appContent.innerHTML = "";
 
-    if (typeof routeHandler === 'function') {
+  const title = createElement("h1", "", "404");
+  const message = createElement("p", "", "Route not found.");
+  const button = createElement("button", "primary-btn", "Back Home");
+  button.type = "button";
+  button.addEventListener("click", function () {
+    navigateTo("");
+  });
 
-        routeHandler(routeData.param);
-
-    } else {
-
-        $('#app-content').html(`
-            <h1>404</h1>
-            <p>Route not found.</p>
-
-            <button class="btn btn-info" onclick="navigateTo('')">
-                Back Home
-            </button>
-        `);
-
-    }
-
+  appContent.append(title, message, button);
 }
 
-/* Listen for navigation */
-
-window.addEventListener('hashchange', handleRoute);
-
-window.addEventListener('load', handleRoute);
+window.addEventListener("hashchange", handleRoute);

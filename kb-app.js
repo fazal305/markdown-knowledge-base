@@ -1,504 +1,352 @@
 const appState = {
-    currentNoteId: null,
-    mode: 'view',
-    debounceTimer: null,
-    theme: localStorage.getItem('kbTheme') || 'dark'
+  currentNoteId: null,
+  mode: "view",
+  debounceTimer: null,
+  theme: localStorage.getItem("kbTheme") || "dark"
 };
 
-/* Apply saved theme */
+const appContent = document.getElementById("app-content");
+const sidebarNotes = document.getElementById("sidebar-notes");
+const sidebarSearch = document.getElementById("sidebar-search");
+const newNoteBtn = document.getElementById("new-note-btn");
 
 function applyTheme() {
-
-    $('html').removeClass('dark light');
-    $('html').addClass(appState.theme);
-
+  document.documentElement.classList.remove("dark", "light");
+  document.documentElement.classList.add(appState.theme);
 }
-
-/* Toggle dark and light theme */
 
 function toggleTheme() {
-
-    appState.theme = appState.theme === 'dark' ? 'light' : 'dark';
-
-    localStorage.setItem('kbTheme', appState.theme);
-
-    applyTheme();
-
+  appState.theme = appState.theme === "dark" ? "light" : "dark";
+  localStorage.setItem("kbTheme", appState.theme);
+  applyTheme();
 }
-
-/* Render home page */
 
 function renderHomePage() {
+  appState.currentNoteId = null;
+  appState.mode = "view";
+  renderSidebar();
 
-    appState.currentNoteId = null;
-    appState.mode = 'view';
+  const notes = getAllNotes().sort(function (a, b) {
+    return b.updatedAt - a.updatedAt;
+  });
 
-    renderSidebar();
+  appContent.innerHTML = "";
 
-    const notes = getAllNotes().sort(function (a, b) {
-        return b.updatedAt - a.updatedAt;
-    });
+  const hero = createElement("section", "home-hero");
+  const kicker = createElement("span", "home-kicker", "PERSONAL WIKI");
+  const title = createElement("h1", "", "Markdown Knowledge Base");
+  const description = createElement(
+    "p",
+    "",
+    "Write notes, organize ideas, search pages, preview markdown, and keep everything saved inside your browser."
+  );
+  const createButton = createElement("button", "primary-btn", "Create New Note");
+  createButton.type = "button";
+  createButton.addEventListener("click", createNewNote);
+  hero.append(kicker, title, description, createButton);
 
-    let recentNotesHtml = '';
+  const recentSection = createElement("section", "recent-section");
+  recentSection.appendChild(createElement("h2", "", "Recent Notes"));
 
-    notes.forEach(function (note) {
+  const grid = createElement("div", "note-grid");
+  notes.forEach(function (note) {
+    grid.appendChild(createNoteCard(note));
+  });
 
-        recentNotesHtml += `
-            <div class="col-md-4 mb-3">
-                <div class="note-card" onclick="navigateTo('note/${note.id}')">
-                    <h4>${escapeHtml(note.title)}</h4>
+  if (notes.length === 0) {
+    grid.appendChild(createElement("p", "note-placeholder", "No notes yet. Create your first one."));
+  }
 
-                    <p>
-                        ${getWordCount(note.content)} words
-                    </p>
-
-                    <small>
-                        Updated ${new Date(note.updatedAt).toLocaleDateString()}
-                    </small>
-                </div>
-            </div>
-        `;
-
-    });
-
-    $('#app-content').html(`
-        <section class="home-hero">
-
-            <span class="home-kicker">
-                PERSONAL WIKI
-            </span>
-
-            <h1>
-                Markdown Knowledge Base
-            </h1>
-
-            <p>
-                Write notes, organize ideas, search your pages, preview markdown,
-                and keep everything saved inside your browser.
-            </p>
-
-            <button class="btn btn-info" onclick="createNewNote()">
-                Create New Note
-            </button>
-
-        </section>
-
-        <section class="recent-section">
-
-            <h2>
-                Recent Notes
-            </h2>
-
-            <div class="row mt-4">
-                ${recentNotesHtml}
-            </div>
-
-        </section>
-    `);
-
+  recentSection.appendChild(grid);
+  appContent.append(hero, recentSection);
 }
 
-/* Render note page */
+function createNoteCard(note) {
+  const card = createElement("button", "note-card");
+  card.type = "button";
+  card.addEventListener("click", function () {
+    navigateTo(`note/${note.id}`);
+  });
+
+  const title = createElement("h3", "", note.title);
+  const meta = createElement("p", "", `${getWordCount(note.content)} words`);
+  const date = createElement("small", "", `Updated ${new Date(note.updatedAt).toLocaleDateString()}`);
+
+  card.append(title, meta, date);
+  return card;
+}
 
 function renderNotePage(noteId) {
+  appState.currentNoteId = noteId;
+  appState.mode = "view";
+  renderSidebar();
 
-    appState.currentNoteId = noteId;
-    appState.mode = 'view';
+  const note = getNoteById(noteId);
 
-    renderSidebar();
+  if (!note) {
+    renderNotFound("This note does not exist.");
+    return;
+  }
 
-    const note = getNoteById(noteId);
+  appContent.innerHTML = "";
 
-    if (!note) {
+  const pageHeader = createElement("div", "page-header");
+  const titleWrap = createElement("div");
+  titleWrap.append(
+    createElement("h1", "", note.title),
+    createElement("p", "muted-text", `Last updated: ${new Date(note.updatedAt).toLocaleString()}`)
+  );
 
-        $('#app-content').html(`
-            <h1>Note Not Found</h1>
-            <p>This note does not exist.</p>
+  const actions = createElement("div", "note-actions");
+  actions.append(
+    createActionButton("Edit", function () { navigateTo(`edit/${note.id}`); }),
+    createActionButton("Export .md", function () { handleExport(note.id); }),
+    createActionButton("Delete", function () { handleDelete(note.id); }, "danger-btn")
+  );
 
-            <button class="btn btn-info" onclick="navigateTo('')">
-                Back Home
-            </button>
-        `);
+  pageHeader.append(titleWrap, actions);
 
-        return;
+  const preview = createElement("article", "markdown-preview");
+  preview.innerHTML = renderMarkdown(note.content);
 
-    }
-
-    const renderedContent = renderMarkdown(note.content);
-
-    $('#app-content').html(`
-        <div class="page-header">
-            <div>
-                <h1>${note.title}</h1>
-
-                <p class="text-muted">
-                    Last updated:
-                    ${new Date(note.updatedAt).toLocaleString()}
-                </p>
-            </div>
-
-            <div class="note-actions">
-                <button class="btn btn-outline-info btn-sm" onclick="navigateTo('edit/${note.id}')">
-                    Edit
-                </button>
-
-                <button class="btn btn-outline-light btn-sm" onclick="handleExport('${note.id}')">
-                    Export .md
-                </button>
-
-                <button class="btn btn-outline-danger btn-sm" onclick="handleDelete('${note.id}')">
-                    Delete
-                </button>
-            </div>
-        </div>
-
-        <article class="markdown-preview">
-            ${renderedContent}
-        </article>
-    `);
-
+  appContent.append(pageHeader, preview);
 }
-
-/* Render edit page */
 
 function renderEditPage(noteId) {
+  appState.currentNoteId = noteId;
+  appState.mode = "edit";
+  renderSidebar();
 
-    appState.currentNoteId = noteId;
-    appState.mode = 'edit';
+  const note = getNoteById(noteId);
 
-    renderSidebar();
+  if (!note) {
+    renderNotFound("Cannot edit a note that does not exist.");
+    return;
+  }
 
-    const note = getNoteById(noteId);
+  appContent.innerHTML = "";
 
-    if (!note) {
+  const shell = createElement("div", "editor-shell");
+  const topbar = createElement("div", "editor-topbar");
+  const titleInput = createElement("input", "note-title-input");
+  titleInput.type = "text";
+  titleInput.value = note.title;
 
-        $('#app-content').html(`
-            <h1>Note Not Found</h1>
-            <p>Cannot edit a note that does not exist.</p>
+  const actions = createElement("div", "editor-actions");
+  const saveStatus = createElement("span", "save-status", "Saved");
+  saveStatus.id = "save-status";
+  actions.append(
+    saveStatus,
+    createActionButton("View", function () { navigateTo(`note/${note.id}`); }),
+    createActionButton("Export", function () { handleExport(note.id); }),
+    createActionButton("Delete", function () { handleDelete(note.id); }, "danger-btn")
+  );
 
-            <button class="btn btn-info" onclick="navigateTo('')">
-                Back Home
-            </button>
-        `);
+  topbar.append(titleInput, actions);
 
-        return;
+  const toolbar = renderToolbar();
 
-    }
+  const layout = createElement("div", "editor-layout");
+  const editorColumn = createElement("div", "editor-column");
+  const textarea = createElement("textarea", "note-editor");
+  textarea.id = "note-content-input";
+  textarea.spellcheck = true;
+  textarea.value = note.content;
+  editorColumn.appendChild(textarea);
 
-    $('#app-content').html(`
-        <div class="editor-shell">
+  const previewColumn = createElement("div", "preview-column");
+  const preview = createElement("div", "markdown-preview");
+  preview.id = "live-preview";
+  previewColumn.appendChild(preview);
+  layout.append(editorColumn, previewColumn);
 
-            <div class="editor-topbar">
+  const footer = createElement("div", "editor-footer");
+  const wordCount = createElement("span", "count-badge", `${getWordCount(note.content)} words`);
+  const charCount = createElement("span", "count-badge", `${getCharCount(note.content)} characters`);
+  const hint = createElement("span", "shortcut-hint", "Ctrl + E to toggle view/edit");
+  wordCount.id = "word-count";
+  charCount.id = "char-count";
+  footer.append(wordCount, charCount, hint);
 
-                <input
-                    type="text"
-                    id="note-title-input"
-                    class="form-control note-title-input"
-                    value="${note.title}">
+  shell.append(topbar, toolbar, layout, footer);
+  appContent.appendChild(shell);
 
-                <div class="editor-actions">
+  updateLivePreview(note.content);
 
-                    <span id="save-status" class="save-status">
-                        Saved
-                    </span>
-
-                    <button class="btn btn-outline-info btn-sm" id="view-note-btn">
-                        View
-                    </button>
-
-                    <button class="btn btn-outline-light btn-sm" onclick="handleExport('${note.id}')">
-                        Export
-                    </button>
-
-                    <button class="btn btn-outline-danger btn-sm" onclick="handleDelete('${note.id}')">
-                        Delete
-                    </button>
-
-                </div>
-
-            </div>
-
-            ${renderToolbar()}
-
-            <div class="editor-layout">
-
-                <div class="editor-column">
-                    <textarea
-                        id="note-content-input"
-                        class="note-editor"
-                        spellcheck="true">${note.content}</textarea>
-                </div>
-
-                <div class="preview-column">
-                    <div id="live-preview" class="markdown-preview"></div>
-                </div>
-
-            </div>
-
-            <div class="editor-footer">
-
-                <span class="badge text-bg-info" id="word-count">
-                    ${getWordCount(note.content)} words
-                </span>
-
-                <span class="badge text-bg-secondary" id="char-count">
-                    ${getCharCount(note.content)} characters
-                </span>
-
-                <span class="shortcut-hint">
-                    Ctrl + E to toggle view/edit
-                </span>
-
-            </div>
-
-        </div>
-    `);
-
-    updateLivePreview(note.content);
-
-    $('#view-note-btn').on('click', function () {
-        navigateTo(`note/${note.id}`);
+  [titleInput, textarea].forEach(function (field) {
+    field.addEventListener("input", function () {
+      updateLivePreview(textarea.value);
+      handleAutoSave(titleInput, textarea);
     });
+  });
 
-    $('#note-title-input, #note-content-input').on('input', function () {
-
-        updateLivePreview($('#note-content-input').val());
-
-        handleAutoSave();
-
+  toolbar.querySelectorAll(".toolbar-btn").forEach(function (button) {
+    button.addEventListener("click", function () {
+      wrapSelection(textarea, button.dataset.before, button.dataset.after);
+      updateLivePreview(textarea.value);
+      handleAutoSave(titleInput, textarea);
     });
-
-    $('.toolbar-btn').on('click', function () {
-
-        const textarea = document.getElementById('note-content-input');
-
-        const before = $(this).attr('data-before');
-        const after = $(this).attr('data-after');
-
-        wrapSelection(textarea, before, after);
-
-        updateLivePreview(textarea.value);
-
-        handleAutoSave();
-
-    });
-
+  });
 }
 
-/* Render sidebar */
+function createActionButton(label, onClick, extraClass = "") {
+  const button = createElement("button", `action-btn ${extraClass}`.trim(), label);
+  button.type = "button";
+  button.addEventListener("click", onClick);
+  return button;
+}
+
+function renderNotFound(messageText) {
+  appContent.innerHTML = "";
+  appContent.append(
+    createElement("h1", "", "Note Not Found"),
+    createElement("p", "", messageText),
+    createActionButton("Back Home", function () { navigateTo(""); }, "primary-btn")
+  );
+}
 
 function renderSidebar(filteredNotes) {
+  const notes = (filteredNotes || getAllNotes()).sort(function (a, b) {
+    return b.updatedAt - a.updatedAt;
+  });
 
-    const notes = (filteredNotes || getAllNotes()).sort(function (a, b) {
-        return b.updatedAt - a.updatedAt;
+  sidebarNotes.innerHTML = "";
+
+  const homeButton = createElement("button", "home-link", "Home");
+  homeButton.type = "button";
+  homeButton.addEventListener("click", function () {
+    navigateTo("");
+  });
+
+  const themeButton = createElement("button", "theme-toggle", `Theme: ${appState.theme}`);
+  themeButton.type = "button";
+  themeButton.addEventListener("click", function () {
+    toggleTheme();
+    renderSidebar(filteredNotes);
+  });
+
+  sidebarNotes.append(homeButton, themeButton);
+
+  notes.forEach(function (note) {
+    const button = createElement(
+      "button",
+      note.id === appState.currentNoteId ? "sidebar-note-link active-note" : "sidebar-note-link",
+      note.title
+    );
+    button.type = "button";
+    button.addEventListener("click", function () {
+      navigateTo(`note/${note.id}`);
     });
-
-    let sidebarHtml = `
-        <button
-            class="home-link"
-            onclick="navigateTo('')">
-            Home
-        </button>
-
-        <button
-            class="theme-toggle"
-            id="theme-toggle">
-            Toggle Theme
-        </button>
-    `;
-
-    notes.forEach(function (note) {
-
-        const activeClass = note.id === appState.currentNoteId ? 'active-note' : '';
-
-        sidebarHtml += `
-            <button
-                class="sidebar-note-link ${activeClass}"
-                onclick="navigateTo('note/${note.id}')">
-                ${note.title}
-            </button>
-        `;
-
-    });
-
-    $('#sidebar-notes').html(sidebarHtml);
-
-    $('#theme-toggle').on('click', function () {
-        toggleTheme();
-    });
-
+    sidebarNotes.appendChild(button);
+  });
 }
-
-/* Handle search input */
 
 function handleSearch(query) {
-
-    const filteredNotes = searchNotes(query);
-
-    renderSidebar(filteredNotes);
-
+  renderSidebar(searchNotes(query));
 }
-
-/* Create a new note */
 
 function createNewNote() {
+  const newNote = {
+    id: generateId(),
+    title: "Untitled Note",
+    content: "# Untitled Note\n\nStart writing here...",
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
 
-    const newNote = {
-        id: generateId(),
-        title: 'Untitled Note',
-        content: '# Untitled Note\n\nStart writing here...',
-        createdAt: Date.now(),
-        updatedAt: Date.now()
-    };
+  saveNote(newNote);
+  renderSidebar();
+  navigateTo(`edit/${newNote.id}`);
+}
 
-    saveNote(newNote);
+function handleAutoSave(titleInput, contentInput) {
+  const note = getNoteById(appState.currentNoteId);
 
+  if (!note) {
+    return;
+  }
+
+  document.getElementById("save-status").textContent = "Saving...";
+  document.getElementById("word-count").textContent = `${getWordCount(contentInput.value)} words`;
+  document.getElementById("char-count").textContent = `${getCharCount(contentInput.value)} characters`;
+
+  clearTimeout(appState.debounceTimer);
+
+  appState.debounceTimer = window.setTimeout(function () {
+    note.title = titleInput.value.trim() || "Untitled Note";
+    note.content = contentInput.value;
+    saveNote(note);
     renderSidebar();
-
-    navigateTo(`edit/${newNote.id}`);
-
+    document.getElementById("save-status").textContent = "Saved";
+  }, 500);
 }
-
-/* Autosave current note */
-
-function handleAutoSave() {
-
-    const note = getNoteById(appState.currentNoteId);
-
-    if (!note) {
-        return;
-    }
-
-    const newTitle = $('#note-title-input').val();
-    const newContent = $('#note-content-input').val();
-
-    $('#save-status').text('Saving...');
-
-    $('#word-count').text(`${getWordCount(newContent)} words`);
-    $('#char-count').text(`${getCharCount(newContent)} characters`);
-
-    clearTimeout(appState.debounceTimer);
-
-    appState.debounceTimer = setTimeout(function () {
-
-        note.title = newTitle.trim() || 'Untitled Note';
-        note.content = newContent;
-
-        saveNote(note);
-
-        renderSidebar();
-
-        $('#save-status').text('Saved');
-
-    }, 500);
-
-}
-
-/* Toggle between view and edit mode */
 
 function toggleMode() {
+  if (!appState.currentNoteId) {
+    return;
+  }
 
-    if (!appState.currentNoteId) {
-        return;
-    }
-
-    if (appState.mode === 'view') {
-        navigateTo(`edit/${appState.currentNoteId}`);
-    } else {
-        navigateTo(`note/${appState.currentNoteId}`);
-    }
-
+  navigateTo(appState.mode === "view" ? `edit/${appState.currentNoteId}` : `note/${appState.currentNoteId}`);
 }
-
-/* Export note as markdown file */
 
 function handleExport(id) {
+  const note = getNoteById(id);
 
-    const note = getNoteById(id);
+  if (!note) {
+    return;
+  }
 
-    if (!note) {
-        return;
-    }
+  const fileName = note.title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "") || "note";
 
-    const fileName = note.title
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-|-$/g, '') || 'note';
+  const blob = new Blob([note.content], { type: "text/markdown" });
+  const downloadUrl = URL.createObjectURL(blob);
+  const downloadLink = document.createElement("a");
 
-    const blob = new Blob([note.content], {
-        type: 'text/markdown'
-    });
-
-    const downloadUrl = URL.createObjectURL(blob);
-
-    const downloadLink = document.createElement('a');
-
-    downloadLink.href = downloadUrl;
-    downloadLink.download = `${fileName}.md`;
-    downloadLink.click();
-
-    URL.revokeObjectURL(downloadUrl);
-
+  downloadLink.href = downloadUrl;
+  downloadLink.download = `${fileName}.md`;
+  downloadLink.click();
+  URL.revokeObjectURL(downloadUrl);
 }
-
-/* Delete current note */
 
 function handleDelete(id) {
+  const note = getNoteById(id);
 
-    const note = getNoteById(id);
+  if (!note || !confirm(`Delete "${note.title}"? This cannot be undone.`)) {
+    return;
+  }
 
-    if (!note) {
-        return;
-    }
-
-    const confirmed = confirm(`Delete "${note.title}"? This cannot be undone.`);
-
-    if (!confirmed) {
-        return;
-    }
-
-    deleteNote(id);
-
-    renderSidebar();
-
-    navigateTo('');
-
+  deleteNote(id);
+  renderSidebar();
+  navigateTo("");
 }
 
-/* App startup */
+function startApp() {
+  createStarterNotes();
+  applyTheme();
 
-$(document).ready(function () {
+  ROUTES.home = renderHomePage;
+  ROUTES.note = renderNotePage;
+  ROUTES.edit = renderEditPage;
 
-    createStarterNotes();
+  renderSidebar();
 
-    applyTheme();
+  sidebarSearch.addEventListener("input", function () {
+    handleSearch(sidebarSearch.value);
+  });
 
-    ROUTES.home = renderHomePage;
-    ROUTES.note = renderNotePage;
-    ROUTES.edit = renderEditPage;
+  newNoteBtn.addEventListener("click", createNewNote);
 
-    renderSidebar();
+  document.addEventListener("keydown", function (event) {
+    if (event.ctrlKey && event.key.toLowerCase() === "e") {
+      event.preventDefault();
+      toggleMode();
+    }
+  });
 
-    $('#sidebar-search').on('keyup', function () {
-        handleSearch($(this).val());
-    });
+  handleRoute();
+}
 
-    $('#new-note-btn').on('click', function () {
-        createNewNote();
-    });
-
-    $(document).on('keydown', function (event) {
-
-        if (event.ctrlKey && event.key.toLowerCase() === 'e') {
-
-            event.preventDefault();
-
-            toggleMode();
-
-        }
-
-    });
-
-    handleRoute();
-
-});
+document.addEventListener("DOMContentLoaded", startApp);
