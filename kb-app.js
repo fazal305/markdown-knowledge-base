@@ -205,7 +205,8 @@ function renderNotFound(messageText) {
   );
 }
 
-function renderSidebar(filteredNotes) {
+function renderSidebar(filteredNotes, searchQuery) {
+  const isSearching = Boolean(searchQuery && searchQuery.trim());
   const notes = (filteredNotes || getAllNotes()).sort(function (a, b) {
     return b.updatedAt - a.updatedAt;
   });
@@ -222,7 +223,7 @@ function renderSidebar(filteredNotes) {
   themeButton.type = "button";
   themeButton.addEventListener("click", function () {
     toggleTheme();
-    renderSidebar(filteredNotes);
+    renderSidebar(filteredNotes, searchQuery);
   });
 
   sidebarNotes.append(homeButton, themeButton);
@@ -239,10 +240,14 @@ function renderSidebar(filteredNotes) {
     });
     sidebarNotes.appendChild(button);
   });
+
+  if (notes.length === 0 && isSearching) {
+    sidebarNotes.appendChild(createElement("p", "note-placeholder", "No notes found."));
+  }
 }
 
 function handleSearch(query) {
-  renderSidebar(searchNotes(query));
+  renderSidebar(searchNotes(query), query);
 }
 
 function createNewNote() {
