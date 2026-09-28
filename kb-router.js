@@ -1,7 +1,7 @@
 const ROUTES = {
   home: null,
   note: null,
-  edit: null
+  edit: null,
 };
 
 function navigateTo(hash) {
@@ -14,7 +14,7 @@ function parseHash() {
   if (!currentHash) {
     return {
       route: "home",
-      param: null
+      param: null,
     };
   }
 
@@ -22,7 +22,7 @@ function parseHash() {
 
   return {
     route: parts[0],
-    param: parts[1] || null
+    param: parts[1] || null,
   };
 }
 

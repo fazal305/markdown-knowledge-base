@@ -2,7 +2,7 @@ const appState = {
   currentNoteId: null,
   mode: "view",
   debounceTimer: null,
-  theme: localStorage.getItem("kbTheme") || "dark"
+  theme: localStorage.getItem("kbTheme") || "dark",
 };
 
 const appContent = document.getElementById("app-content");
@@ -38,9 +38,13 @@ function renderHomePage() {
   const description = createElement(
     "p",
     "",
-    "Write notes, organize ideas, search pages, preview markdown, and keep everything saved inside your browser."
+    "Write notes, organize ideas, search pages, preview markdown, and keep everything saved inside your browser.",
   );
-  const createButton = createElement("button", "primary-btn", "Create New Note");
+  const createButton = createElement(
+    "button",
+    "primary-btn",
+    "Create New Note",
+  );
   createButton.type = "button";
   createButton.addEventListener("click", createNewNote);
   hero.append(kicker, title, description, createButton);
@@ -54,7 +58,13 @@ function renderHomePage() {
   });
 
   if (notes.length === 0) {
-    grid.appendChild(createElement("p", "note-placeholder", "No notes yet. Create your first one."));
+    grid.appendChild(
+      createElement(
+        "p",
+        "note-placeholder",
+        "No notes yet. Create your first one.",
+      ),
+    );
   }
 
   recentSection.appendChild(grid);
@@ -70,7 +80,11 @@ function createNoteCard(note) {
 
   const title = createElement("h3", "", note.title);
   const meta = createElement("p", "", `${getWordCount(note.content)} words`);
-  const date = createElement("small", "", `Updated ${new Date(note.updatedAt).toLocaleDateString()}`);
+  const date = createElement(
+    "small",
+    "",
+    `Updated ${new Date(note.updatedAt).toLocaleDateString()}`,
+  );
 
   card.append(title, meta, date);
   return card;
@@ -94,14 +108,28 @@ function renderNotePage(noteId) {
   const titleWrap = createElement("div");
   titleWrap.append(
     createElement("h1", "", note.title),
-    createElement("p", "muted-text", `Last updated: ${new Date(note.updatedAt).toLocaleString()}`)
+    createElement(
+      "p",
+      "muted-text",
+      `Last updated: ${new Date(note.updatedAt).toLocaleString()}`,
+    ),
   );
 
   const actions = createElement("div", "note-actions");
   actions.append(
-    createActionButton("Edit", function () { navigateTo(`edit/${note.id}`); }),
-    createActionButton("Export .md", function () { handleExport(note.id); }),
-    createActionButton("Delete", function () { handleDelete(note.id); }, "danger-btn")
+    createActionButton("Edit", function () {
+      navigateTo(`edit/${note.id}`);
+    }),
+    createActionButton("Export .md", function () {
+      handleExport(note.id);
+    }),
+    createActionButton(
+      "Delete",
+      function () {
+        handleDelete(note.id);
+      },
+      "danger-btn",
+    ),
   );
 
   pageHeader.append(titleWrap, actions);
@@ -137,9 +165,19 @@ function renderEditPage(noteId) {
   saveStatus.id = "save-status";
   actions.append(
     saveStatus,
-    createActionButton("View", function () { navigateTo(`note/${note.id}`); }),
-    createActionButton("Export", function () { handleExport(note.id); }),
-    createActionButton("Delete", function () { handleDelete(note.id); }, "danger-btn")
+    createActionButton("View", function () {
+      navigateTo(`note/${note.id}`);
+    }),
+    createActionButton("Export", function () {
+      handleExport(note.id);
+    }),
+    createActionButton(
+      "Delete",
+      function () {
+        handleDelete(note.id);
+      },
+      "danger-btn",
+    ),
   );
 
   topbar.append(titleInput, actions);
@@ -161,9 +199,21 @@ function renderEditPage(noteId) {
   layout.append(editorColumn, previewColumn);
 
   const footer = createElement("div", "editor-footer");
-  const wordCount = createElement("span", "count-badge", `${getWordCount(note.content)} words`);
-  const charCount = createElement("span", "count-badge", `${getCharCount(note.content)} characters`);
-  const hint = createElement("span", "shortcut-hint", "Ctrl + E to toggle view/edit");
+  const wordCount = createElement(
+    "span",
+    "count-badge",
+    `${getWordCount(note.content)} words`,
+  );
+  const charCount = createElement(
+    "span",
+    "count-badge",
+    `${getCharCount(note.content)} characters`,
+  );
+  const hint = createElement(
+    "span",
+    "shortcut-hint",
+    "Ctrl + E to toggle view/edit",
+  );
   wordCount.id = "word-count";
   charCount.id = "char-count";
   footer.append(wordCount, charCount, hint);
@@ -190,7 +240,11 @@ function renderEditPage(noteId) {
 }
 
 function createActionButton(label, onClick, extraClass = "") {
-  const button = createElement("button", `action-btn ${extraClass}`.trim(), label);
+  const button = createElement(
+    "button",
+    `action-btn ${extraClass}`.trim(),
+    label,
+  );
   button.type = "button";
   button.addEventListener("click", onClick);
   return button;
@@ -201,7 +255,13 @@ function renderNotFound(messageText) {
   appContent.append(
     createElement("h1", "", "Note Not Found"),
     createElement("p", "", messageText),
-    createActionButton("Back Home", function () { navigateTo(""); }, "primary-btn")
+    createActionButton(
+      "Back Home",
+      function () {
+        navigateTo("");
+      },
+      "primary-btn",
+    ),
   );
 }
 
@@ -219,7 +279,11 @@ function renderSidebar(filteredNotes, searchQuery) {
     navigateTo("");
   });
 
-  const themeButton = createElement("button", "theme-toggle", `Theme: ${appState.theme}`);
+  const themeButton = createElement(
+    "button",
+    "theme-toggle",
+    `Theme: ${appState.theme}`,
+  );
   themeButton.type = "button";
   themeButton.addEventListener("click", function () {
     toggleTheme();
@@ -231,8 +295,10 @@ function renderSidebar(filteredNotes, searchQuery) {
   notes.forEach(function (note) {
     const button = createElement(
       "button",
-      note.id === appState.currentNoteId ? "sidebar-note-link active-note" : "sidebar-note-link",
-      note.title
+      note.id === appState.currentNoteId
+        ? "sidebar-note-link active-note"
+        : "sidebar-note-link",
+      note.title,
     );
     button.type = "button";
     button.addEventListener("click", function () {
@@ -242,7 +308,9 @@ function renderSidebar(filteredNotes, searchQuery) {
   });
 
   if (notes.length === 0 && isSearching) {
-    sidebarNotes.appendChild(createElement("p", "note-placeholder", "No notes found."));
+    sidebarNotes.appendChild(
+      createElement("p", "note-placeholder", "No notes found."),
+    );
   }
 }
 
@@ -256,7 +324,7 @@ function createNewNote() {
     title: "Untitled Note",
     content: "# Untitled Note\n\nStart writing here...",
     createdAt: Date.now(),
-    updatedAt: Date.now()
+    updatedAt: Date.now(),
   };
 
   saveNote(newNote);
@@ -272,8 +340,10 @@ function handleAutoSave(titleInput, contentInput) {
   }
 
   document.getElementById("save-status").textContent = "Saving...";
-  document.getElementById("word-count").textContent = `${getWordCount(contentInput.value)} words`;
-  document.getElementById("char-count").textContent = `${getCharCount(contentInput.value)} characters`;
+  document.getElementById("word-count").textContent =
+    `${getWordCount(contentInput.value)} words`;
+  document.getElementById("char-count").textContent =
+    `${getCharCount(contentInput.value)} characters`;
 
   clearTimeout(appState.debounceTimer);
 
@@ -291,7 +361,11 @@ function toggleMode() {
     return;
   }
 
-  navigateTo(appState.mode === "view" ? `edit/${appState.currentNoteId}` : `note/${appState.currentNoteId}`);
+  navigateTo(
+    appState.mode === "view"
+      ? `edit/${appState.currentNoteId}`
+      : `note/${appState.currentNoteId}`,
+  );
 }
 
 function handleExport(id) {
@@ -301,10 +375,11 @@ function handleExport(id) {
     return;
   }
 
-  const fileName = note.title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "") || "note";
+  const fileName =
+    note.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "") || "note";
 
   const blob = new Blob([note.content], { type: "text/markdown" });
   const downloadUrl = URL.createObjectURL(blob);

@@ -37,7 +37,7 @@ function renderToolbar() {
     { label: "Italic", before: "*", after: "*" },
     { label: "Heading", before: "## ", after: "" },
     { label: "Code", before: "`", after: "`" },
-    { label: "Link", before: "[", after: "](https://example.com)" }
+    { label: "Link", before: "[", after: "](https://example.com)" },
   ];
 
   tools.forEach(function (tool) {

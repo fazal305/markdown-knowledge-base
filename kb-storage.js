@@ -50,7 +50,7 @@ function sayHello() {
 \`\`\`
 `,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     },
     {
       id: generateId(),
@@ -86,7 +86,7 @@ const note = {
 \`\`\`
 `,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     },
     {
       id: generateId(),
@@ -115,8 +115,8 @@ const note = {
 - [ ] Full-stack deployment
 `,
       createdAt: now,
-      updatedAt: now
-    }
+      updatedAt: now,
+    },
   ];
 
   localStorage.setItem(STORAGE_KEY, JSON.stringify(starterNotes));
